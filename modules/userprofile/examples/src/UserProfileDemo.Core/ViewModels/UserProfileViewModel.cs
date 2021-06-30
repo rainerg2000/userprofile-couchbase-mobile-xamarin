@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Reactive;
+using System.Reactive.Linq;
 using System.Windows.Input;
+using ReactiveUI;
+
 using UserProfileDemo.Core.Respositories;
 using UserProfileDemo.Core.Services;
 using UserProfileDemo.Models;
@@ -47,6 +51,34 @@ namespace UserProfileDemo.Core.ViewModels
             set => SetPropertyChanged(ref _imageData, value);
         }
 
+        string _syncStatus;
+        public string SyncStatus
+        {
+            get => _syncStatus;
+            set => SetPropertyChanged(ref _syncStatus, value);
+        }
+
+        string _syncStatusContinuous;
+        public string SyncStatusContinuous
+        {
+            get => _syncStatusContinuous;
+            set => SetPropertyChanged(ref _syncStatusContinuous, value);
+        }
+
+        private bool _isPeriodicallyReplicating;
+        public bool IsPeriodicallyReplicating
+        {
+            get =>_isPeriodicallyReplicating; 
+            set => SetPropertyChanged(ref _isPeriodicallyReplicating, value);
+        }
+
+        private bool _isContinuouslyReplicating;
+        public bool IsContinuouslyReplicating
+        {
+            get => _isContinuouslyReplicating;
+            set => SetPropertyChanged(ref _isContinuouslyReplicating, value);
+        }
+
         ICommand _saveCommand;
         public ICommand SaveCommand
         {
@@ -78,15 +110,29 @@ namespace UserProfileDemo.Core.ViewModels
         ICommand _logoutCommand;
         public ICommand LogoutCommand
         {
-            get
+          get
+          {
+            if (_logoutCommand == null)
             {
-                if (_logoutCommand == null)
-                {
-                    _logoutCommand = new Command(Logout);
-                }
-
-                return _logoutCommand;
+              _logoutCommand = new Command(Logout);
             }
+
+            return _logoutCommand;
+          }
+        }
+
+        ICommand _syncCommand;
+        public ICommand SyncCommand
+        {
+          get
+          {
+            if (_syncCommand == null)
+            {
+              _syncCommand = new Command(Sync);
+            }
+
+            return _syncCommand;
+          }
         }
 
         public UserProfileViewModel(IUserProfileRepository userProfileRepository, IAlertService alertService, 
@@ -96,8 +142,39 @@ namespace UserProfileDemo.Core.ViewModels
             AlertService = alertService;
             MediaService = mediaService;
             LogoutSuccessful = logoutSuccessful;
-
             LoadUserProfile();
+
+            UserProfileRepository.SubscribeSyncStatus()
+                .Subscribe(status => SyncStatus = $"{status.Activity} - {status.Progress.Completed}/{status.Progress.Total}");
+            UserProfileRepository.SubscribeSyncStatusContinuous()
+                .Subscribe(status => SyncStatusContinuous = $"{status.Activity} - {status.Progress.Completed}/{status.Progress.Total}");
+
+            this.ObservableForProperty(x=> x.IsContinuouslyReplicating)
+                .Subscribe(x => SyncContinuous(x.Value));
+
+            this.WhenAnyValue(x => x.IsPeriodicallyReplicating)
+                .Select(enabled =>
+                    enabled
+                        ? Observable.Interval(TimeSpan.FromMilliseconds(3000)).Select(elapsed => true)
+                        : Observable.Return(false))
+                .Switch()
+                .SelectMany(async enabled =>
+                {
+                    if (enabled)
+                    {
+                        try
+                        {
+                            Sync();
+                        }
+                        catch (Exception e)
+                        {
+                            SyncStatus = e.ToString();
+                        }
+                    }
+
+                    return Unit.Default;
+                })
+                .Subscribe();
         }
 
         async void LoadUserProfile()
@@ -168,12 +245,21 @@ namespace UserProfileDemo.Core.ViewModels
 
         void Logout()
         {
-            UserProfileRepository.Dispose();
+          UserProfileRepository.Dispose();
 
-            AppInstance.User = null;
+          AppInstance.User = null;
 
-            LogoutSuccessful?.Invoke();
-            LogoutSuccessful = null;
+          LogoutSuccessful?.Invoke();
+          LogoutSuccessful = null;
+        }
+
+        void Sync()
+        { 
+            UserProfileRepository.Sync();
+        }
+        void SyncContinuous(bool start)
+        {
+            UserProfileRepository.SyncContinuous(start);
         }
     }
 }

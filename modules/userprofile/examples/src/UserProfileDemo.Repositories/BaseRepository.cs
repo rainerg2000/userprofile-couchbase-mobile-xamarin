@@ -1,6 +1,13 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Reactive.Subjects;
+using System.Runtime.InteropServices.ComTypes;
 using Couchbase.Lite;
+using Couchbase.Lite.Sync;
 using UserProfileDemo.Core.Respositories;
+using UserProfileDemo.Core.Services;
+using Xamarin.Forms;
 
 namespace UserProfileDemo.Respositories
 {
@@ -10,9 +17,68 @@ namespace UserProfileDemo.Respositories
         ListenerToken DatabaseListenerToken { get; set; }
 
         protected virtual DatabaseConfiguration DatabaseConfig { get; set; }
+        private IAuth AuthSvc;
+        private Replicator _repl;
+        private Replicator _replContinuous;
+        private BehaviorSubject<ReplicatorStatus> _replStatus;
+        private BehaviorSubject<ReplicatorStatus> _replStatusContinuous;
+
+        private SessionAuthenticator _syncSession;
+        private SessionAuthenticator SyncSession
+        {
+            get
+            {
+                if (_syncSession == null)
+                {
+                    _syncSession = new SessionAuthenticator(AuthSvc
+                        .GetSgSessionToken(new Uri("https://nsc-1-sync.perftest-homemonitoring.com/nro"))
+                        .Result);
+                }
+
+                return _syncSession;
+            }
+        }
+
+        private Replicator Repl
+        {
+            get
+            {
+                if (_repl == null)
+                {
+                    var replConfig = new ReplicatorConfiguration(Database,
+                        new URLEndpoint(new Uri("wss://nsc-1-sync.perftest-homemonitoring.com/nro")));
+                    replConfig.Authenticator = SyncSession;
+                    replConfig.ReplicatorType = ReplicatorType.Pull;
+                    _repl = new Replicator(replConfig);
+                }
+
+                _repl.AddChangeListener((sender, args) => _replStatus.OnNext(args.Status));
+                return _repl;
+            }
+        }
+
+        private Replicator ReplContinuous
+        {
+            get
+            {
+                if (_replContinuous == null)
+                {
+                    var replConfig = new ReplicatorConfiguration(Database,
+                        new URLEndpoint(new Uri("wss://nsc-1-sync.perftest-homemonitoring.com/nro")));
+                    replConfig.Authenticator = SyncSession;
+                    replConfig.ReplicatorType = ReplicatorType.Pull;
+                    replConfig.Continuous = true;
+                    _replContinuous = new Replicator(replConfig);
+                }
+
+                _replContinuous.AddChangeListener((sender, args) => _replStatusContinuous.OnNext(args.Status));
+                return _replContinuous;
+            }
+        }
 
         // tag::database[]
         Database _database;
+
         protected Database Database
         {
             get
@@ -42,6 +108,9 @@ namespace UserProfileDemo.Respositories
             // tag::registerForDatabaseChanges[]
             DatabaseListenerToken = Database.AddChangeListener(OnDatabaseChangeEvent);
             // end::registerForDatabaseChanges[]
+            AuthSvc = DependencyService.Get<IAuth>();
+            _replStatus = new BehaviorSubject<ReplicatorStatus>(new ReplicatorStatus());
+            _replStatusContinuous = new BehaviorSubject<ReplicatorStatus>(new ReplicatorStatus());
         }
 
         // tag::addChangeListener[]
@@ -80,5 +149,32 @@ namespace UserProfileDemo.Respositories
 
         public abstract T Get(K id);
         public abstract bool Save(T obj);
+        public IObservable<ReplicatorStatus> SubscribeSyncStatus()
+        {
+            return _replStatus;
+        }
+
+        public IObservable<ReplicatorStatus> SubscribeSyncStatusContinuous()
+        {
+            return _replStatusContinuous;
+        }
+
+        public void Sync()
+        {
+            Task.Run(() =>  Repl.Start());
+        }
+
+        public void SyncContinuous(bool start)
+        {
+            if (start)
+            {
+                // running on other thread, to allow OAuth popup if user interaction is required
+                Task.Run(() => ReplContinuous.Start());
+            }
+            else
+            {
+                ReplContinuous.Stop();
+            }
+        }
     }
 }

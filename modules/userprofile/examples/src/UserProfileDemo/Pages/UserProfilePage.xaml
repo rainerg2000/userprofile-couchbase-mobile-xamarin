@@ -18,9 +18,14 @@
         <Grid Margin="15,25,15,20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width=".25*" />
+                <ColumnDefinition Width=".25*" />
                 <ColumnDefinition Width=".75*" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -38,7 +43,15 @@
             <Entry Grid.Row="2" Grid.Column="1" Text="{Binding Email}" VerticalOptions="Center" IsEnabled="false" />
             <Label Grid.Row="3" Grid.Column="0" Text="Address:" HorizontalOptions="End" VerticalOptions="Center" />
             <Entry Grid.Row="3" Grid.Column="1" Text="{Binding Address}" VerticalOptions="Center" />
-            <Button Grid.Row="4" Grid.ColumnSpan="2" Text="Logout" Command="{Binding LogoutCommand}" 
+            <Entry Grid.Row="4" Grid.Column="2" Text="{Binding SyncStatus}" VerticalOptions="Center" />
+            <Label Grid.Row="4" Grid.Column="0" Text="Oneshot:" HorizontalOptions="End" VerticalOptions="Center" />
+            <Button Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="1" Text="Sync" Command="{Binding SyncCommand}" VerticalOptions="End" />
+            <Label Grid.Row="5" Grid.Column="0" Text="Periodic:" HorizontalOptions="End" VerticalOptions="Center" />
+            <Switch Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="1" IsToggled="{Binding IsPeriodicallyReplicating}" />
+            <Label Grid.Row="6" Grid.Column="0" Text="Continuous:" HorizontalOptions="End" VerticalOptions="Center" />
+            <Switch Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="1" IsToggled="{Binding IsContinuouslyReplicating}" />
+            <Entry Grid.Row="6" Grid.Column="2" Text="{Binding SyncStatusContinuous}" VerticalOptions="Center" />
+            <Button Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="1" Text="Logout" Command="{Binding LogoutCommand}" 
                     TextColor="Red" VerticalOptions="End" HorizontalOptions="Center" />
         </Grid>
     </ContentPage.Content>
