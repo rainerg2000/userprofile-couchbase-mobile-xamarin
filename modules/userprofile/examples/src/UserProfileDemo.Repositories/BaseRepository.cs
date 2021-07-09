@@ -22,6 +22,8 @@ namespace UserProfileDemo.Respositories
         private Replicator _replContinuous;
         private BehaviorSubject<ReplicatorStatus> _replStatus;
         private BehaviorSubject<ReplicatorStatus> _replStatusContinuous;
+        private bool _busy;
+        private bool _nextReplicationQueued;
 
         private SessionAuthenticator _syncSession;
         private SessionAuthenticator SyncSession
@@ -52,7 +54,19 @@ namespace UserProfileDemo.Respositories
                     _repl = new Replicator(replConfig);
                 }
 
-                _repl.AddChangeListener((sender, args) => _replStatus.OnNext(args.Status));
+                _repl.AddChangeListener((sender, args) =>
+                {
+                    _replStatus.OnNext(args.Status);
+                    if (args.Status.Activity == ReplicatorActivityLevel.Stopped || args.Status.Activity == ReplicatorActivityLevel.Offline)
+                    {
+                        _busy = false;
+                        if (_nextReplicationQueued)
+                        {
+                            Sync();
+                            _nextReplicationQueued = false;
+                        }
+                    }
+                });
                 return _repl;
             }
         }
@@ -161,7 +175,19 @@ namespace UserProfileDemo.Respositories
 
         public void Sync()
         {
-            Task.Run(() =>  Repl.Start());
+            if (_busy)
+            {
+                if (_nextReplicationQueued)
+                {
+                    // nothing to do follow-on replication is already queued
+                    return;
+                }
+
+                _nextReplicationQueued = true;
+                return;
+            }
+            _busy = true;
+            Task.Run(() => Repl.Start());
         }
 
         public void SyncContinuous(bool start)

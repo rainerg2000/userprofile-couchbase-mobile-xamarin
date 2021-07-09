@@ -155,7 +155,7 @@ namespace UserProfileDemo.Core.ViewModels
             this.WhenAnyValue(x => x.IsPeriodicallyReplicating)
                 .Select(enabled =>
                     enabled
-                        ? Observable.Interval(TimeSpan.FromMilliseconds(3000)).Select(elapsed => true)
+                        ? Observable.Interval(TimeSpan.FromMilliseconds(500)).Select(elapsed => true)
                         : Observable.Return(false))
                 .Switch()
                 .SelectMany(async enabled =>
