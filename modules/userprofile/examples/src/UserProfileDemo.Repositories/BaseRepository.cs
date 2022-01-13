@@ -60,39 +60,41 @@ namespace UserProfileDemo.Respositories
             return data;
         }
 
-
-
         private DateTime replStarted;
 
         private Replicator Repl
         {
             get
             {
-                if (_repl == null)
+                lock (this)
                 {
-                    var replConfig = BuildReplConfig();
-
-                    _repl = new Replicator(replConfig);
-
-                    _repl.AddChangeListener((sender, args) =>
+                    if (_repl == null)
                     {
+                        var replConfig = BuildReplConfig();
 
-                        _replStatus.OnNext((args.Status, replCounter));
-                        if (args.Status.Activity == ReplicatorActivityLevel.Stopped ||
-                            args.Status.Activity == ReplicatorActivityLevel.Offline)
+                        _repl = new Replicator(replConfig);
+
+                        _repl.AddChangeListener((sender, args) =>
                         {
- 
-                            _busy = false;
-                            if (_nextReplicationQueued)
-                            {
-                                Sync();
-                                _nextReplicationQueued = false;
-                            }
-                        }
 
-                    });
+                            _replStatus.OnNext((args.Status, replCounter));
+                            if (args.Status.Activity == ReplicatorActivityLevel.Stopped ||
+                                args.Status.Activity == ReplicatorActivityLevel.Offline)
+                            {
+
+                                _busy = false;
+                                if (_nextReplicationQueued)
+                                {
+                                    Sync();
+                                    _nextReplicationQueued = false;
+                                }
+                            }
+
+                        });
+                    }
+
+                    return _repl;
                 }
-                return _repl;
             }
         }
 

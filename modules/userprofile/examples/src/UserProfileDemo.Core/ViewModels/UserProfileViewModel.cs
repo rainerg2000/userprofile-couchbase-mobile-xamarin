@@ -146,6 +146,7 @@ namespace UserProfileDemo.Core.ViewModels
             LoadUserProfile();
             UserProfileRepository.SubscribeSyncStatus()
                 .Subscribe(status => SyncStatus = $"[{status.count}] {status.status.Activity} - {status.status.Progress.Completed}/{status.status.Progress.Total}");
+            
             this.WhenAnyValue(x => x.IsPeriodicallyReplicating)
                 .Select(enabled =>
                     enabled
