@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Reactive;
+using System.Reactive.Linq;
 using System.Windows.Input;
+using ReactiveUI;
 using UserProfileDemo.Core.Respositories;
 using UserProfileDemo.Core.Services;
 using UserProfileDemo.Models;
@@ -46,7 +49,19 @@ namespace UserProfileDemo.Core.ViewModels
             get => _imageData;
             set => SetPropertyChanged(ref _imageData, value);
         }
+        string _syncStatus;
+        public string SyncStatus
+        {
+            get => _syncStatus;
+            set => SetPropertyChanged(ref _syncStatus, value);
+        }
 
+        private bool _isPeriodicallyReplicating;
+        public bool IsPeriodicallyReplicating
+        {
+            get =>_isPeriodicallyReplicating; 
+            set => SetPropertyChanged(ref _isPeriodicallyReplicating, value);
+        }
         ICommand _saveCommand;
         public ICommand SaveCommand
         {
@@ -89,6 +104,37 @@ namespace UserProfileDemo.Core.ViewModels
             }
         }
 
+        ICommand _syncCommand;
+        public ICommand SyncCommand
+        {
+          get
+          {
+            if (_syncCommand == null)
+            {
+              _syncCommand = new Command(Sync);
+            }
+            return _syncCommand;
+          }
+        }
+
+        ICommand _getStatusCommand;
+        public ICommand GetStatusCommand
+        {
+            get
+            {
+                if (_getStatusCommand == null)
+                {
+                    _getStatusCommand = new Command(GetStatus);
+                }
+                return _getStatusCommand;
+            }
+        }
+
+        private void GetStatus()
+        {
+            UserProfileRepository.GetStatus();
+        }
+
         public UserProfileViewModel(IUserProfileRepository userProfileRepository, IAlertService alertService, 
                                     IMediaService mediaService, Action logoutSuccessful)
         {
@@ -98,6 +144,30 @@ namespace UserProfileDemo.Core.ViewModels
             LogoutSuccessful = logoutSuccessful;
 
             LoadUserProfile();
+            UserProfileRepository.SubscribeSyncStatus()
+                .Subscribe(status => SyncStatus = $"[{status.count}] {status.status.Activity} - {status.status.Progress.Completed}/{status.status.Progress.Total}");
+            this.WhenAnyValue(x => x.IsPeriodicallyReplicating)
+                .Select(enabled =>
+                    enabled
+                        ? Observable.Interval(TimeSpan.FromMilliseconds(500)).Select(elapsed => true)
+                        : Observable.Return(false))
+                .Switch()
+                .SelectMany(async enabled =>
+                {
+                    if (enabled)
+                    {
+                        try
+                        {
+                            Sync();
+                        }
+                        catch (Exception e)
+                        {
+                            SyncStatus = e.ToString();
+                        }
+                    }
+                    return Unit.Default;
+                })
+                .Subscribe();
         }
 
         async void LoadUserProfile()
@@ -175,5 +245,11 @@ namespace UserProfileDemo.Core.ViewModels
             LogoutSuccessful?.Invoke();
             LogoutSuccessful = null;
         }
+
+        void Sync()
+        { 
+            UserProfileRepository.Sync();
+        }
+
     }
 }

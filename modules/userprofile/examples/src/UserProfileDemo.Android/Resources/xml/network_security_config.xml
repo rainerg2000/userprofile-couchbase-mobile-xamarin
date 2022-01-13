@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<network-security-config>
+  <base-config>
+    <trust-anchors>
+      <certificates src="system"/>
+      <certificates src="user"/>
+    </trust-anchors>
+  </base-config>
+  <domain-config>
+    <domain includeSubdomains="true">perftest-homemonitoring.com</domain>
+    <trust-anchors>
+      <certificates src="@raw/hssca_chain"/>
+    </trust-anchors>
+  </domain-config>
+  <!--<base-config cleartextTrafficPermitted="false">
+  </base-config>-->
+</network-security-config>

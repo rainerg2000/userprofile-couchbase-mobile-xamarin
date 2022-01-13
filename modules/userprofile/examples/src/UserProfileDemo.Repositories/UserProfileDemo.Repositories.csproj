@@ -5,10 +5,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="intg-3-msei-nro-biotronik-dev.cer" />
+    <None Remove="intg_3_msei_nro_biotronik_dev.cer" />
+    <None Remove="intg_3_msei_nro_biotronik_dev_chain.cer" />
+    <None Remove="perftest_homemonitoring_com.cer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="intg_3_msei_nro_biotronik_dev.cer" />
+    <EmbeddedResource Include="perftest_homemonitoring_com.cer" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\UserProfileDemo.Models\UserProfileDemo.Models.csproj" />
     <ProjectReference Include="..\UserProfileDemo.Core\UserProfileDemo.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite" Version="2.6.0" />
+    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.8.6" />
+    <PackageReference Include="System.Reactive" Version="5.0.0" />
+    <PackageReference Include="Xamarin.Forms" Version="4.8.0.1534" />
   </ItemGroup>
 </Project>

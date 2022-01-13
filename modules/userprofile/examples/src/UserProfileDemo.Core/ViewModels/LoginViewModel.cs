@@ -7,7 +7,7 @@ namespace UserProfileDemo.Core.ViewModels
     {
         Action SignInSuccessful { get; set; }
 
-        string _username;
+        string _username = "default";
         public string Username
         {
             get => _username;
@@ -17,7 +17,7 @@ namespace UserProfileDemo.Core.ViewModels
             }
         }
 
-        string _password;
+        string _password = "default";
         public string Password
         {
             get => _password;
