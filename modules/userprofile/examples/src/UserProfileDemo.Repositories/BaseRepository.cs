@@ -195,6 +195,12 @@ namespace UserProfileDemo.Respositories
             _replStatus.OnNext((status, replCounter));
         }
 
+        public void Stop()
+        {
+            _nextReplicationQueued = false;
+            Repl.Stop();
+        }
+
         public void Sync()
         {
             if (_busy)

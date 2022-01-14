@@ -10,5 +10,6 @@ namespace UserProfileDemo.Core.Respositories
         IObservable<(ReplicatorStatus status, int count)> SubscribeSyncStatus();
         void Sync();
         void GetStatus();
+        void Stop();
     }
 }

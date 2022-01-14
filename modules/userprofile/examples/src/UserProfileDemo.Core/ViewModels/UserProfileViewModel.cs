@@ -56,6 +56,13 @@ namespace UserProfileDemo.Core.ViewModels
             set => SetPropertyChanged(ref _syncStatus, value);
         }
 
+        string _syncError;
+        public string SyncError
+        {
+            get => _syncError;
+            set => SetPropertyChanged(ref _syncError, value);
+        }
+
         private bool _isPeriodicallyReplicating;
         public bool IsPeriodicallyReplicating
         {
@@ -135,6 +142,24 @@ namespace UserProfileDemo.Core.ViewModels
             UserProfileRepository.GetStatus();
         }
 
+        ICommand _stopCommand;
+        public ICommand StopCommand
+        {
+            get
+            {
+                if (_stopCommand == null)
+                {
+                    _stopCommand = new Command(Stop);
+                }
+                return _stopCommand;
+            }
+        }
+
+        private void Stop()
+        {
+            UserProfileRepository.Stop();
+        }
+
         public UserProfileViewModel(IUserProfileRepository userProfileRepository, IAlertService alertService, 
                                     IMediaService mediaService, Action logoutSuccessful)
         {
@@ -145,7 +170,11 @@ namespace UserProfileDemo.Core.ViewModels
 
             LoadUserProfile();
             UserProfileRepository.SubscribeSyncStatus()
-                .Subscribe(status => SyncStatus = $"[{status.count}] {status.status.Activity} - {status.status.Progress.Completed}/{status.status.Progress.Total}");
+                .Subscribe(status =>
+                {
+                    SyncStatus = $"[{status.count}] {status.status.Activity} - {status.status.Progress.Completed}/{status.status.Progress.Total}";
+                    SyncError = $"{status.status.Error?.HResult} - {status.status.Error?.Message}";
+                });
             
             this.WhenAnyValue(x => x.IsPeriodicallyReplicating)
                 .Select(enabled =>
