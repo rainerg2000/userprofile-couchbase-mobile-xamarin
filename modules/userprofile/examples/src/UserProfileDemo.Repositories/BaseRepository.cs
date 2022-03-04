@@ -78,8 +78,7 @@ namespace UserProfileDemo.Respositories
                         {
 
                             _replStatus.OnNext((args.Status, replCounter));
-                            if (args.Status.Activity == ReplicatorActivityLevel.Stopped ||
-                                args.Status.Activity == ReplicatorActivityLevel.Offline)
+                            if (args.Status.Activity == ReplicatorActivityLevel.Stopped)
                             {
 
                                 _busy = false;
