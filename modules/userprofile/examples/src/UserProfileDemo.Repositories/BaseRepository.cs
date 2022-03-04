@@ -11,6 +11,7 @@ using Couchbase.Lite.Sync;
 using UserProfileDemo.Core.Respositories;
 using UserProfileDemo.Core.Services;
 using Xamarin.Forms;
+using Couchbase.Lite.Logging;
 
 namespace UserProfileDemo.Respositories
 {
@@ -121,6 +122,8 @@ namespace UserProfileDemo.Respositories
                 if (_database == null)
                 {
                     // tag::databaseCreate[]
+                    Database.Log.Console.Domains = LogDomain.All;
+                    Database.Log.Console.Level = LogLevel.Verbose;
                     _database = new Database(DatabaseName, DatabaseConfig);
                     // end::databaseCreate[]
                 }
